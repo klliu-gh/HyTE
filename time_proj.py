@@ -14,6 +14,7 @@ from sklearn.metrics import precision_recall_fscore_support
 YEARMIN = -50
 YEARMAX = 3000
 class HyTE(Model):
+	#读取所有的带时间的facts[h,r,t,[tao1,tao2]]
 	def read_valid(self,filename):
 		valid_triples = []
 		with open(filename,'r') as filein:
@@ -35,6 +36,7 @@ class HyTE(Model):
 
 
 
+	#获取批次
 	def getBatches(self, data, shuffle = True):
 		if shuffle: random.shuffle(data)
 		num_batches = len(data) // self.p.batch_size
@@ -44,12 +46,14 @@ class HyTE(Model):
 			yield data[start_idx : start_idx + self.p.batch_size]
 
 
+	#返回的year2id,key为（start,end)时间范畴，value为序号
 	def create_year2id(self,triple_time):
 		year2id = dict()
 		freq = ddict(int)
 		count = 0
 		year_list = []
 
+		#year_list之存储了年份
 		for k,v in triple_time.items():
 			try:
 				start = v[0].split('-')[0]
@@ -69,10 +73,12 @@ class HyTE(Model):
 		# 	# if int(start) > int(end):
 		# 	# 	pdb.set_trace()
 		
+		#freq记录每年的facts次数，k为year，v为该年发生facts的次数
 		year_list.sort()
 		for year in year_list:
 			freq[year] = freq[year] + 1
 
+		#year_class是用来判断该年份属于哪个class，每个class的facts个数不能低于300
 		year_class =[]
 		count = 0
 		for key in sorted(freq.keys()):
@@ -80,6 +86,7 @@ class HyTE(Model):
 			if count > 300:
 				year_class.append(key)
 				count = 0
+		#返回的year2id，key为时间范围（start,end)，value表示序号
 		prev_year = 0
 		i=0
 		for i,yr in enumerate(year_class):
@@ -108,6 +115,8 @@ class HyTE(Model):
 		# 		count_end+=1
 		
 		return year2id
+	
+	#判断给定的start,end分别位于year2id的哪个序号
 	def get_span_ids(self, start, end):
 		start =int(start)
 		end=int(end)
@@ -129,6 +138,7 @@ class HyTE(Model):
 					end_lbl = lbl
 		return start_lbl, end_lbl
 
+	#重新判断triple_time的start和end的序号start_idx，end_idx，inp_idx为有效triple_time的序列号
 	def create_id_labels(self,triple_time,dtype):
 		YEARMAX = 3000
 		YEARMIN =  -50
